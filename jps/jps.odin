@@ -5,8 +5,12 @@ import "core:math"
 import "core:time"
 import pq "core:container/priority_queue"
 
-GRID_WIDTH := 25
-GRID_HEIGHT := 25
+Heuristics_Type :: enum {
+    euclidean,
+    manhatten,
+    manhatten_octile,
+    chebyshev
+}
 
 Point :: [2]int
 Matrix :: []int
@@ -17,6 +21,10 @@ Jps_Node :: struct {
     h: int,
     f: f32,
 }
+
+GRID_WIDTH := 0
+GRID_HEIGHT := 0
+HEURISTICS := Heuristics_Type.euclidean
 
 new_jps_node :: proc(position: [2]int = {}, fscore: f32 = 0.0) -> ^Jps_Node {
     jps_node := new(Jps_Node)
@@ -167,6 +175,36 @@ jump :: proc(cX, cY, dX, dY: int, maze: Matrix, goal: Point) -> (Point, bool) {
     }
 }
 
+get_heuristics :: proc(p1, p2: Point) ->f32 {
+
+    switch HEURISTICS {
+    case .euclidean:
+        return math.sqrt_f32(
+            math.pow_f32(f32(p1[0] - p2[0]), 2) + math.pow_f32(f32(p1[1] - p2[1]), 2)
+        )
+    case .manhatten:
+        dx := abs(p2[0] - p1[0])
+        dy := abs(p2[1] - p1[1])
+        return f32(dx + dy)
+    case .manhatten_octile:
+        dx := abs(p2[0] - p1[0])
+        dy := abs(p2[1] - p1[1])
+        if dx > dy {
+            return f32(dy) + math.SQRT_TWO * f32(dx - dy)   
+        } else {
+            return f32(dx) + math.SQRT_TWO * f32(dy - dx)
+        }
+    case .chebyshev:
+        dx := abs(p2[0] - p1[0])
+        dy := abs(p2[1] - p1[1])
+        return f32(max(dx, dy))  
+    case: // default
+        return math.sqrt_f32(
+            math.pow_f32(f32(p1[0] - p2[0]), 2) + math.pow_f32(f32(p1[1] - p2[1]), 2)
+        )
+    }
+}
+
 node_neighbours :: proc(cX, cY: int, parent: [2]int, maze: Matrix) -> []Point {
     neighbours := make([dynamic]Point)
 
@@ -264,7 +302,7 @@ identify_successor :: proc(pos: [2]int, came_from: map[[2]int][2]int, maze: Matr
     return fixed_data
 }
 
-jps :: proc(maze: Matrix, start: [2]int, end: [2]int, manhatten: bool) -> []Point {
+jps :: proc(maze: Matrix, start: [2]int, end: [2]int) -> []Point {
     came_from := make(map[[2]int][2]int)
     defer delete(came_from)
     close_set := make(map[[2]int][2]int)
@@ -274,7 +312,7 @@ jps :: proc(maze: Matrix, start: [2]int, end: [2]int, manhatten: bool) -> []Poin
     fscore := make(map[[2]int]f32)
     defer delete(fscore)
     gscore[start] = 0
-    fscore[start] = get_heuristics(start, end, manhatten)
+    fscore[start] = get_heuristics(start, end)
 
     pqueue: pq.Priority_Queue(^Jps_Node)
     pq.init(&pqueue, jps_node_cost, pq.default_swap_proc(^Jps_Node))
@@ -321,13 +359,13 @@ jps :: proc(maze: Matrix, start: [2]int, end: [2]int, manhatten: bool) -> []Poin
                 continue
             }
         
-            tentative_g_score := gscore[current] + get_heuristics(current, next_jump_point, manhatten)
+            tentative_g_score := gscore[current] + get_heuristics(current, next_jump_point)
 
             gscore_val, ok := gscore[next_jump_point]
             if tentative_g_score < gscore_val || !ok {
                 came_from[next_jump_point] = current
                 gscore[next_jump_point] = tentative_g_score
-                fscore[next_jump_point] = tentative_g_score + get_heuristics(next_jump_point, end, manhatten)
+                fscore[next_jump_point] = tentative_g_score + get_heuristics(next_jump_point, end)
                 pq.push(&pqueue, new_jps_node(next_jump_point, fscore[next_jump_point]))
             }
         }
@@ -339,16 +377,8 @@ jps :: proc(maze: Matrix, start: [2]int, end: [2]int, manhatten: bool) -> []Poin
 }
 
 
-get_heuristics :: proc(p1, p2: Point, manhatten: bool) ->f32 {
-    if manhatten {
-        dx := abs(p2[0] - p1[0])
-        dy := abs(p2[1] - p1[1])
-
-        //return f32(dx + dy) + math.SQRT_TWO * f32(min(dx, dy))
-        return f32(dx + dy)
-    } else {
-        return math.sqrt_f32(
-            math.pow_f32(f32(p1[0] - p2[0]), 2) + math.pow_f32(f32(p1[1] - p2[1]), 2)
-        )
-    }
+jps_init :: proc(width, height: int, heuristic: Heuristics_Type) {
+    GRID_WIDTH = width
+    GRID_HEIGHT = height
+    HEURISTICS = heuristic
 }

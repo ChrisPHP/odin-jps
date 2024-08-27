@@ -9,7 +9,7 @@ import rl "vendor:raylib"
 
 
 GRID_SIZE :: 25
-CELL_SIZE :: 50
+CELL_SIZE :: 25
 
 
 grid := [GRID_SIZE*GRID_SIZE]int{}
@@ -44,15 +44,18 @@ main :: proc() {
 
     generate_grid()  
 
+
     start := time.now()
-    man := jps.jps(grid[:], start_pos, end_pos, true)
+    jps.jps_init(GRID_SIZE, GRID_SIZE, .manhatten)
+    man := jps.jps(grid[:], start_pos, end_pos)
     duration := time.since(start)
 
     seconds := f64(duration) / f64(time.Second)
     fmt.printf("Manhatten execution time: %v\n", seconds)
 
     start = time.now()
-    euc := jps.jps(grid[:], start_pos, end_pos, false)    
+    jps.jps_init(GRID_SIZE, GRID_SIZE, .euclidean)
+    euc := jps.jps(grid[:], start_pos, end_pos)    
     
     duration = time.since(start)
     seconds = f64(duration) / f64(time.Second)
@@ -84,18 +87,20 @@ main :: proc() {
 
         rl.DrawRectangle(i32(start_pos[0])*CELL_SIZE, i32(start_pos[1])*CELL_SIZE, CELL_SIZE, CELL_SIZE, rl.RED)
         rl.DrawRectangle(i32(end_pos[0])*CELL_SIZE, i32(end_pos[1])*CELL_SIZE, CELL_SIZE, CELL_SIZE, rl.GREEN)
+    
+        cent := CELL_SIZE/2
 
         for i in 0..<len(man)-1 {
             next := i + 1
-            start := [2]f32{f32(man[i][0]*CELL_SIZE+25), f32(man[i][1]*CELL_SIZE+25)}
-            end := [2]f32{f32(man[next][0]*CELL_SIZE+25), f32(man[next][1]*CELL_SIZE+25)}
+            start := [2]f32{f32(man[i][0]*CELL_SIZE+cent), f32(man[i][1]*CELL_SIZE+cent)}
+            end := [2]f32{f32(man[next][0]*CELL_SIZE+cent), f32(man[next][1]*CELL_SIZE+cent)}
             rl.DrawLineEx(start, end, 10, rl.PURPLE)
         }
 
         for i in 0..<len(euc)-1 {
             next := i + 1
-            start := [2]f32{f32(euc[i][0]*CELL_SIZE+25), f32(euc[i][1]*CELL_SIZE+25)}
-            end := [2]f32{f32(euc[next][0]*CELL_SIZE+25), f32(euc[next][1]*CELL_SIZE+25)}
+            start := [2]f32{f32(euc[i][0]*CELL_SIZE+cent), f32(euc[i][1]*CELL_SIZE+cent)}
+            end := [2]f32{f32(euc[next][0]*CELL_SIZE+cent), f32(euc[next][1]*CELL_SIZE+cent)}
             rl.DrawLineEx(start, end, 10, rl.BLUE)
         }
 
