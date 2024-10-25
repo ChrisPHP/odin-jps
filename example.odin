@@ -10,22 +10,24 @@ import rl "vendor:raylib"
 GRID_SIZE :: 25
 CELL_SIZE :: 25
 
+START_POS := [2]int{1,1}
+END_POS := [2]int{23,23}
 
 grid := [GRID_SIZE*GRID_SIZE]int{}
 
+
+//Generate a grid of random 0s and 1s
 generate_grid :: proc() {
     for i in 0..<GRID_SIZE {
         for j in 0..<GRID_SIZE {
             size := j * GRID_SIZE + i
-            if i == 1 && j == 1 {
+            if i == START_POS[0] && j == START_POS[1] {
                 grid[size] = 0
-            } else if i == 23 && j == 23 {
+            } else if i == END_POS[0] && j == END_POS[1] {
                 grid[size] = 0
             } else {
-                // Generate a random number between 0 and 1
                 random_value := rand.float32()
                 
-                // Set the cell to 1 with a 20% probability, otherwise 0
                 if random_value < 0.2 {
                     grid[size] = 1
                 } else {
@@ -42,10 +44,9 @@ main :: proc() {
 
     generate_grid()  
 
-
     start := time.now()
     jps.jps_init(GRID_SIZE, GRID_SIZE, .manhatten)
-    man := jps.jps(grid[:], start_pos, end_pos)
+    man := jps.jps(grid[:], START_POS, END_POS)
     duration := time.since(start)
 
     seconds := f64(duration) / f64(time.Second)
@@ -53,7 +54,7 @@ main :: proc() {
 
     start = time.now()
     jps.jps_init(GRID_SIZE, GRID_SIZE, .euclidean)
-    euc := jps.jps(grid[:], start_pos, end_pos)    
+    euc := jps.jps(grid[:], START_POS, END_POS)    
     
     duration = time.since(start)
     seconds = f64(duration) / f64(time.Second)
@@ -83,8 +84,8 @@ main :: proc() {
             }
         }
 
-        rl.DrawRectangle(i32(start_pos[0])*CELL_SIZE, i32(start_pos[1])*CELL_SIZE, CELL_SIZE, CELL_SIZE, rl.RED)
-        rl.DrawRectangle(i32(end_pos[0])*CELL_SIZE, i32(end_pos[1])*CELL_SIZE, CELL_SIZE, CELL_SIZE, rl.GREEN)
+        rl.DrawRectangle(i32(START_POS[0])*CELL_SIZE, i32(START_POS[1])*CELL_SIZE, CELL_SIZE, CELL_SIZE, rl.RED)
+        rl.DrawRectangle(i32(END_POS[0])*CELL_SIZE, i32(END_POS[1])*CELL_SIZE, CELL_SIZE, CELL_SIZE, rl.GREEN)
     
         cent := CELL_SIZE/2
 
