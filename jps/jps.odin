@@ -56,7 +56,7 @@ direction :: proc(cX, cY, pX, pY: int) -> (dX: int, dY: int) {
         dY = 0
     }
     
-    return
+    return dX, dY
 }
 
 blocked :: proc(cX, cY, dX, dY: int, maze: Matrix) -> bool {
@@ -267,12 +267,7 @@ node_neighbours :: proc(cX, cY: int, parent: [2]int, maze: Matrix) -> []Point {
         }
     }
 
-    fixed_data := make([]Point, len(neighbours))
-    copy(fixed_data, neighbours[:])
-    delete(neighbours)
-
-
-    return fixed_data
+    return neighbours[:]
 }
 
 identify_successor :: proc(pos: [2]int, came_from: map[[2]int][2]int, maze: Matrix, goal: [2]int) -> []Point {
@@ -285,7 +280,8 @@ identify_successor :: proc(pos: [2]int, came_from: map[[2]int][2]int, maze: Matr
     }
     successors := make([dynamic]Point)
     neighbours := node_neighbours(cX, cY, val, maze)
-    
+    defer delete(neighbours)
+
     for cell in neighbours {
         dX := cell[0] - cX
         dY := cell[1] - cY
@@ -295,11 +291,7 @@ identify_successor :: proc(pos: [2]int, came_from: map[[2]int][2]int, maze: Matr
         }
     }
     
-    fixed_data := make([]Point, len(successors))
-    copy(fixed_data, successors[:])
-    delete(successors)
-    
-    return fixed_data
+    return successors[:]
 }
 
 jps :: proc(maze: Matrix, start: [2]int, end: [2]int) -> []Point {
@@ -316,14 +308,15 @@ jps :: proc(maze: Matrix, start: [2]int, end: [2]int) -> []Point {
 
     pqueue: pq.Priority_Queue(^Jps_Node)
     pq.init(&pqueue, jps_node_cost, pq.default_swap_proc(^Jps_Node))
-    pq.push(&pqueue, new_jps_node(start, fscore[start]))
+    j_node := new_jps_node(start, fscore[start])
+    pq.push(&pqueue, j_node)
 
     current_index := 0
     for pq.len(pqueue) > 0 {
-        current := pq.pop(&pqueue).position
+        node :=  pq.pop(&pqueue)
+        current := node.position
 
         if current == end {
-            pq.destroy(&pqueue)
             data := make([dynamic]Point)
             for {
                 found := false
@@ -344,14 +337,23 @@ jps :: proc(maze: Matrix, start: [2]int, end: [2]int) -> []Point {
             fixed_data := make([]Point, len(data))
             copy(fixed_data, data[:])
             delete(data)
-            
+
+            //Free remaining nodes from memory
+            free(node)
+            for pq.len(pqueue) > 0 {
+                free_me := pq.pop(&pqueue)
+                free(free_me)
+            }
+            pq.destroy(&pqueue)
+
             return fixed_data
         }
 
         close_set[current] = current
 
         successors := identify_successor(current, came_from, maze, end)
-        
+        defer delete(successors)
+
         for successor in successors {
             next_jump_point :=  successor
 
@@ -366,13 +368,15 @@ jps :: proc(maze: Matrix, start: [2]int, end: [2]int) -> []Point {
                 came_from[next_jump_point] = current
                 gscore[next_jump_point] = tentative_g_score
                 fscore[next_jump_point] = tentative_g_score + get_heuristics(next_jump_point, end)
-                pq.push(&pqueue, new_jps_node(next_jump_point, fscore[next_jump_point]))
+                j_node = new_jps_node(next_jump_point, fscore[next_jump_point])
+                pq.push(&pqueue, j_node)
             }
         }
         current_index += 1
+        free(node)
     }
     pq.destroy(&pqueue)
-
+   
     return {}
 }
 

@@ -7,7 +7,6 @@ import jps "jps"
 import rl "vendor:raylib"
 
 
-
 GRID_SIZE :: 25
 CELL_SIZE :: 25
 
@@ -38,7 +37,6 @@ generate_grid :: proc() {
 }
 
 main :: proc() {
-
     start_pos := [2]int{1,1}
     end_pos := [2]int{23,23}
 
@@ -107,6 +105,10 @@ main :: proc() {
 
         rl.EndDrawing()
     }
+
+    //Delete arrays from memory
+    delete(man)
+    delete(euc)
 
     rl.CloseWindow()
 }
